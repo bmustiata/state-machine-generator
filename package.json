@@ -1,7 +1,10 @@
 {
-  "name": "test-machine-generator",
+  "name": "state-machine-generator",
   "version": "1.0.0",
-  "description": "test-machine-generator.",
+  "description": "state-machine-generator.",
+  "bin": {
+    "state-machine-generator": "out/main.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -9,6 +12,7 @@
   "author": "Bogdan Mustiata <bogdan.mustiata@gmail.com>",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@types/klaw-sync": "1.1.2",
     "@types/node": "0.0.2",
     "babel-core": "^6.17.0",
     "babel-loader": "^6.2.5",
@@ -20,7 +24,7 @@
   },
   "dependencies": {
     "babel-polyfill": "^6.16.0",
+    "klaw-sync": "1.1.2",
     "source-map-support": "0.4.8"
   }
 }
-

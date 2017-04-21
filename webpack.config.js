@@ -10,12 +10,20 @@ module.exports = {
   output: {
     filename: 'out/main.js',
     library: true,
-    libraryTarget : 'commonjs2'
+    libraryTarget : 'commonjs2',
+      node: {
+        __filename: true,
+        __dirname: true,
+      },
   },
   resolve: {
       extensions: ['', '.webpack.js', '.web.js', '.ts', '.tsx', '.js']
   },
   target: "node", // don't include stubs for `process`, etc.
+  node: {
+    __filename: true,
+    __dirname: true,
+  },
   externals: localNodeModules,
   module: {
     loaders: [
@@ -46,6 +54,7 @@ module.exports = {
   },
   plugins: [
     new SmartBannerPlugin(
+        '#!/usr/bin/env node\n' +
         'require("source-map-support/register");\n',
         {raw: true, entryOnly: false })
   ],

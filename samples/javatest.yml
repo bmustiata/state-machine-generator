@@ -1,0 +1,11 @@
+name: Test
+package: com.ciplogic.awesome
+states:
+  - DEFAULT
+  - RUNNING
+  - STOPPED
+transitions:
+  DEFAULT: RUNNING
+  RUNNING:
+    - DEFAULT
+    - STOPPED

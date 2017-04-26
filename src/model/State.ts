@@ -1,9 +1,7 @@
 import * as fs from 'fs'
 import * as jsYaml from 'js-yaml'
 
-export interface State {
-  name: string
-}
+type State = string;
 
 export interface Transition {
     startState: State
@@ -71,6 +69,8 @@ export function readStateModel(fileName: string) : StateModel {
 
     fileItems.transitions[startStateName].forEach((endStateName) => addTransition(startStateName, endStateName))
   })
+
+  console.log(`Item: ${result}`)
 
   return result;
 }

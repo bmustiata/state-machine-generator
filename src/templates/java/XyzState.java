@@ -1,5 +1,9 @@
 package com.ciplogic.statemachine;
 
 public enum XyzState {
-    // STATES DEFINITIONS
+    // BEGIN_STATES: STATE_NAME,
+    DEFAULT,
+    RUNNING,
+    STOPPED,
+    // END_STATES
 }

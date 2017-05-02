@@ -84,6 +84,7 @@ function applyTemplate(templateFilePath, targetFolder, filePath) {
                     const pattern = transitionMatch[1]
                     model.transitions.forEach(transition => {
                         const transitionString = pattern
+                            .replace(/TRANSITION_NAME/g, transition.name)
                             .replace(/FROM_STATE/g, transition.startState)
                             .replace(/TO_STATE/g, transition.endState)
                         

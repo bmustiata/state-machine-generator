@@ -46,9 +46,14 @@ export function readStateModel(fileName: string) : StateModel {
   }
   result.states = fileItems.states;
 
+  console.log(`file transitions ${JSON.stringify(fileItems.transitions)}`);
+
   function addTransition(startStateName, transitionName) {
     const startState = result.states[ result.states.indexOf(startStateName) ]
-    const endState = result.states[result.states.indexOf(result.transitions[transitionName])];
+    const endStateName = fileItems.transitions[startStateName][transitionName];
+    const endState = result.states[ result.states.indexOf(endStateName) ];
+
+    console.log(`${startStateName} -> ${endStateName} (${transitionName})`);
 
     const transition : Transition = {
       name: transitionName,      
@@ -62,17 +67,14 @@ export function readStateModel(fileName: string) : StateModel {
   if (!fileItems.transitions) {
     throw new Error('`transitions` property was not specified in the yml file.');
   }
+
   Object.keys(fileItems.transitions).forEach((startStateName) => {
-    if (typeof fileItems.transitions[startStateName] === 'string') {
-
-      addTransition(startStateName, fileItems.transitions[startStateName])
-      return
-    }
-
-    fileItems.transitions[startStateName].forEach((endStateName) => addTransition(startStateName, endStateName))
+    Object.keys(fileItems.transitions[startStateName]).forEach((transitionName) => {
+      addTransition(startStateName, transitionName);
+    })
   })
 
-  console.log(`Item: ${result}`)
+  console.log(`Item: ${JSON.stringify(result)}`)
 
   return result;
 }

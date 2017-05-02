@@ -4,6 +4,7 @@ import * as jsYaml from 'js-yaml'
 type State = string;
 
 export interface Transition {
+    name: string
     startState: State
     endState: State
 }
@@ -45,11 +46,12 @@ export function readStateModel(fileName: string) : StateModel {
   }
   result.states = fileItems.states;
 
-  function addTransition(startStateName, endStateName) {
+  function addTransition(startStateName, transitionName) {
     const startState = result.states[ result.states.indexOf(startStateName) ]
-    const endState = result.states[result.states.indexOf(endStateName)];
+    const endState = result.states[result.states.indexOf(result.transitions[transitionName])];
 
     const transition : Transition = {
+      name: transitionName,      
       startState,
       endState,
     }

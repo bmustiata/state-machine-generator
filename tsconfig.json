@@ -1,9 +1,13 @@
 {
-  "compilerOptions": {
-    "target": "ES2015",
-    "module": "commonjs",
-    "experimentalDecorators" : true,
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "jsx": "react"  }
+    "compilerOptions": {
+		"target": "ES2015",
+        "module": "commonjs",
+        "experimentalDecorators" : true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "jsx": "react",
+        "typeRoots": [
+            "typings", "node_modules/@types", "node_modules"
+        ]
+	  }
 }

@@ -5,7 +5,9 @@ states:
   - RUNNING
   - STOPPED
 transitions:
-  DEFAULT: RUNNING
+  DEFAULT: 
+    run: RUNNING
+    stop: STOPPED
   RUNNING:
-    - DEFAULT
-    - STOPPED
+    pause: DEFAULT
+    stop: STOPPED

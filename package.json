@@ -2,8 +2,8 @@
   "name": "state-machine-generator",
   "version": "1.0.0",
   "description": "state-machine-generator.",
-  "bin": {
-    "state-machine-generator": "out/main.js"
+  "bin" : {
+    "state-machine-generator" : "out/main.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -28,3 +28,4 @@
     "source-map-support": "0.4.8"
   }
 }
+

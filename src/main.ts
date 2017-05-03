@@ -27,6 +27,8 @@ function createPackageFolder(packageName: string) : string {
 
 const model = readStateModel(fileName)
 
+console.log(`Dirname is ${__dirname}`)
+
 const targetFolder = path.join('.', createPackageFolder(model.package))
 const templateFolder = path.resolve(path.join('.', __dirname, 'templates/java/'))
 

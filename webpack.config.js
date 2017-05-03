@@ -1,7 +1,8 @@
+var webpack = require('webpack');
 var SmartBannerPlugin = require('smart-banner-webpack-plugin');
 
-var fs = require("fs")
-var localNodeModules = fs.readdirSync("node_modules")
+var fs = require("fs");
+var localNodeModules = fs.readdirSync("node_modules");
 
 localNodeModules.splice(0, 0, "fs", "net", "path")
 
@@ -10,20 +11,12 @@ module.exports = {
   output: {
     filename: 'out/main.js',
     library: true,
-    libraryTarget : 'commonjs2',
-      node: {
-        __filename: true,
-        __dirname: true,
-      },
+    libraryTarget : 'commonjs2'
   },
   resolve: {
       extensions: ['', '.webpack.js', '.web.js', '.ts', '.tsx', '.js']
   },
   target: "node", // don't include stubs for `process`, etc.
-  node: {
-    __filename: true,
-    __dirname: true,
-  },
   externals: localNodeModules,
   module: {
     loaders: [
@@ -56,7 +49,10 @@ module.exports = {
     new SmartBannerPlugin(
         '#!/usr/bin/env node\n' +
         'require("source-map-support/register");\n',
-        {raw: true, entryOnly: false })
+        {raw: true, entryOnly: false }),
+    new webpack.DefinePlugin({
+        $dirname: '__dirname',
+    }),
   ],
   devtool: 'source-map'
 }

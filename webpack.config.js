@@ -17,6 +17,10 @@ module.exports = {
       extensions: ['', '.webpack.js', '.web.js', '.ts', '.tsx', '.js']
   },
   target: "node", // don't include stubs for `process`, etc.
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
   externals: localNodeModules,
   module: {
     loaders: [

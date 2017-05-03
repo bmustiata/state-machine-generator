@@ -39,9 +39,16 @@ The state machine generated is thread safe.
 
 ## User Templates
 
+### name
+
 Xyz will be replaced to the state machine name from the yml file.
+
+### package
+
 com.ciplogic.statemachine will be replaced to the package name from the yml
 file.
+
+### states
 
 States will be replaced using the template after the `BEGIN_STATES:`, with one
 entry per line, with `STATE_NAME` replaced as the actual value. What's between
@@ -67,3 +74,15 @@ RUNNING,
 STOPPED,
 }
 ```
+
+### transitions
+
+The same way as the _states_, transitions will be replaced using this template:
+
+```java
+// BEGIN_TRANSITIONS: this.registerTransition("TRANSITION_NAME", XyzState.FROM_STATE, XyzState.TO_STATE);
+...
+// END_TRANSITIONS
+```
+
+Of course, in here the `TRANSITION_NAME`, `FROM_STATE` and `TO_STATE` will be replaced using the values from the `transitions` sections from the yaml.

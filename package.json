@@ -1,9 +1,9 @@
 {
   "name": "state-machine-generator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "state-machine-generator.",
-  "bin" : {
-    "state-machine-generator" : "out/main.js"
+  "bin": {
+    "state-machine-generator": "out/main.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -23,9 +23,10 @@
   },
   "dependencies": {
     "babel-polyfill": "^6.16.0",
+    "colors": "1.1.2",
     "js-yaml": "3.8.3",
     "klaw-sync": "1.1.2",
+    "mkdirp": "0.5.1",
     "source-map-support": "0.4.8"
   }
 }
-

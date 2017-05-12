@@ -8,6 +8,9 @@ import { StateModel } from './Model'
 const TRANSITIONS_RE = /^\s*\/\/ BEGIN_TRANSITIONS:\s*(.*)\s*$/m
 const TRANSITIONS_END_RE = /^\s*\/\/ END_TRANSITIONS\s*$/m
 
+const TRANSITION_SET_RE = /^\s*\/\/ BEGIN_TRANSITION_SET:\s*(.*)\s*$/m
+const TRANSITION_SET_END_RE = /^\s*\/\/ END_TRANSITION_SET\s*$/m
+
 const STATES_RE = /^\s*\/\/ BEGIN_STATES:\s*(.*)\s*$/m
 const STATES_END_RE = /^\s*\/\/ END_STATES\s*$/m
 
@@ -35,6 +38,7 @@ function replacePackageAndName(line: string, model: StateModel) : string {
 }
 
 let transitionsReading = false
+let transitionSetReading = false
 let stateReading = false
 
 /**
@@ -56,15 +60,26 @@ export function applyTemplate(templateFilePath: string,
 
     console.log(`Reading ${templateFilePath}`)
 
-    fs.readFileSync(templateFilePath, 'utf-8')
-            .split(/\r?\n/g)
-            .forEach(line => {
+    const content = fs.readFileSync(templateFilePath, 'utf-8')
+                      .split(/\r?\n/g)
+
+    console.log('Readed content: ', content)
+
+    content.forEach(line => {
                 if (transitionsReading) {
                     if (TRANSITIONS_END_RE.test(line)) {
                         transitionsReading = false;
                     }
 
                     return; // ignore line
+                }
+
+                if (transitionSetReading) {
+                    if (TRANSITION_SET_END_RE.test(line)) {
+                        transitionSetReading = false
+                    }
+
+                    return; // ignore the line
                 }
 
                 if (stateReading) {
@@ -88,6 +103,22 @@ export function applyTemplate(templateFilePath: string,
                     })
 
                     transitionsReading = true
+
+                    return
+                }
+
+                const transitionSetMatch = TRANSITION_SET_RE.exec(line)
+                if (transitionSetMatch) {
+                    const pattern = transitionSetMatch[1]
+                    const transitionSet = new Set(model.transitions.map(it => it.name))
+                    transitionSet.forEach(transitionName => {
+                        const transitionString = pattern
+                            .replace(/TRANSITION_NAME/g, transitionName)
+                        
+                        resultContent.push(replacePackageAndName(transitionString, model))
+                    })
+
+                    transitionSetReading = true
 
                     return
                 }

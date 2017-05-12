@@ -207,6 +207,8 @@ module.exports =
 	var fs = __webpack_require__(8);
 	var TRANSITIONS_RE = /^\s*\/\/ BEGIN_TRANSITIONS:\s*(.*)\s*$/m;
 	var TRANSITIONS_END_RE = /^\s*\/\/ END_TRANSITIONS\s*$/m;
+	var TRANSITION_SET_RE = /^\s*\/\/ BEGIN_TRANSITION_SET:\s*(.*)\s*$/m;
+	var TRANSITION_SET_END_RE = /^\s*\/\/ END_TRANSITION_SET\s*$/m;
 	var STATES_RE = /^\s*\/\/ BEGIN_STATES:\s*(.*)\s*$/m;
 	var STATES_END_RE = /^\s*\/\/ END_STATES\s*$/m;
 	/**
@@ -230,6 +232,7 @@ module.exports =
 	    return line;
 	}
 	var transitionsReading = false;
+	var transitionSetReading = false;
 	var stateReading = false;
 	/**
 	 * Write the template file.
@@ -243,12 +246,20 @@ module.exports =
 	    var targetFilePath = path.join(targetFolder, filePath);
 	    var resultContent = [];
 	    console.log("Reading " + templateFilePath);
-	    fs.readFileSync(templateFilePath, 'utf-8').split(/\r?\n/g).forEach(function (line) {
+	    var content = fs.readFileSync(templateFilePath, 'utf-8').split(/\r?\n/g);
+	    console.log('Readed content: ', content);
+	    content.forEach(function (line) {
 	        if (transitionsReading) {
 	            if (TRANSITIONS_END_RE.test(line)) {
 	                transitionsReading = false;
 	            }
 	            return; // ignore line
+	        }
+	        if (transitionSetReading) {
+	            if (TRANSITION_SET_END_RE.test(line)) {
+	                transitionSetReading = false;
+	            }
+	            return; // ignore the line
 	        }
 	        if (stateReading) {
 	            if (STATES_END_RE.test(line)) {
@@ -266,11 +277,24 @@ module.exports =
 	            transitionsReading = true;
 	            return;
 	        }
+	        var transitionSetMatch = TRANSITION_SET_RE.exec(line);
+	        if (transitionSetMatch) {
+	            var _pattern = transitionSetMatch[1];
+	            var transitionSet = new Set(model.transitions.map(function (it) {
+	                return it.name;
+	            }));
+	            transitionSet.forEach(function (transitionName) {
+	                var transitionString = _pattern.replace(/TRANSITION_NAME/g, transitionName);
+	                resultContent.push(replacePackageAndName(transitionString, model));
+	            });
+	            transitionSetReading = true;
+	            return;
+	        }
 	        var stateMatch = STATES_RE.exec(line);
 	        if (stateMatch) {
-	            var _pattern = stateMatch[1];
+	            var _pattern2 = stateMatch[1];
 	            model.states.forEach(function (state) {
-	                var stateString = _pattern.replace('STATE_NAME', state);
+	                var stateString = _pattern2.replace('STATE_NAME', state);
 	                resultContent.push(replacePackageAndName(stateString, model));
 	            });
 	            stateReading = true;

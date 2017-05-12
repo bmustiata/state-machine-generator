@@ -1,6 +1,6 @@
 {
   "name": "state-machine-generator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "state-machine-generator.",
   "bin": {
     "state-machine-generator": "out/main.js"

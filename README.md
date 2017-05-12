@@ -86,3 +86,16 @@ The same way as the _states_, transitions will be replaced using this template:
 ```
 
 Of course, in here the `TRANSITION_NAME`, `FROM_STATE` and `TO_STATE` will be replaced using the values from the `transitions` sections from the yaml.
+
+Transitions can also be accessed as only the set of names, for example to
+generate methods that will do said transitions:
+
+```java
+// BEGIN_TRANSITION_SET: public XyzState TRANSITION_NAME() { return this.transition("TRANSITION_NAME"); }
+...
+// END_TRANSITION_SET
+// BEGIN_TRANSITION_SET: public XyzState TRANSITION_NAME(Object data) { return this.transition("TRANSITION_NAME", data); }
+...
+// END_TRANSITION_SET
+```
+

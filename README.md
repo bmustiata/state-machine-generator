@@ -2,7 +2,7 @@
 
 Code generator for state machines.
 
-Supports `java` only, or user defined templates (just point to the folder).
+Supports `java` and `ts` only, or user defined templates (just point to the folder).
 
 ## Sample Test Machine Definition
 

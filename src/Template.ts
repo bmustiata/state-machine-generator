@@ -27,7 +27,7 @@ export function createPackageFolder(packageName: string) : string {
 }
 
 export function isSimpleTemplate(name: string) {
-    return 'java' == name;
+    return 'java' == name || 'ts' == name;
 }
 
 function replacePackageAndName(line: string, model: StateModel) : string {

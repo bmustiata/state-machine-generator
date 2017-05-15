@@ -223,7 +223,7 @@ module.exports =
 	}
 	exports.createPackageFolder = createPackageFolder;
 	function isSimpleTemplate(name) {
-	    return 'java' == name;
+	    return 'java' == name || 'ts' == name;
 	}
 	exports.isSimpleTemplate = isSimpleTemplate;
 	function replacePackageAndName(line, model) {

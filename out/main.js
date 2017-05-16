@@ -205,6 +205,7 @@ module.exports =
 	var mkdirp = __webpack_require__(5);
 	var path = __webpack_require__(4);
 	var fs = __webpack_require__(8);
+	var handlebars = __webpack_require__(11);
 	var TRANSITIONS_RE = /^\s*\/\/ BEGIN_TRANSITIONS:\s*(.*)\s*$/m;
 	var TRANSITIONS_END_RE = /^\s*\/\/ END_TRANSITIONS\s*$/m;
 	var TRANSITION_SET_RE = /^\s*\/\/ BEGIN_TRANSITION_SET:\s*(.*)\s*$/m;
@@ -246,9 +247,13 @@ module.exports =
 	    var targetFilePath = path.join(targetFolder, filePath);
 	    var resultContent = [];
 	    console.log("Reading " + templateFilePath);
-	    var content = fs.readFileSync(templateFilePath, 'utf-8').split(/\r?\n/g);
-	    console.log('Readed content: ', content);
-	    content.forEach(function (line) {
+	    var content = fs.readFileSync(templateFilePath, 'utf-8');
+	    var contentFn = handlebars.compile(content, {
+	        preventIndent: true
+	    });
+	    var renderedContent = contentFn(model).split(/\r?\n/g);
+	    console.log('Readed content: ', renderedContent);
+	    renderedContent.forEach(function (line) {
 	        if (transitionsReading) {
 	            if (TRANSITIONS_END_RE.test(line)) {
 	                transitionsReading = false;
@@ -306,6 +311,12 @@ module.exports =
 	    fs.writeFileSync(targetFilePath, fileContent, { encoding: 'utf-8' });
 	}
 	exports.applyTemplate = applyTemplate;
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports) {
+
+	module.exports = require("handlebars");
 
 /***/ })
 /******/ ]);

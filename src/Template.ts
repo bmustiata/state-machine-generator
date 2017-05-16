@@ -1,7 +1,7 @@
 import * as mkdirp from 'mkdirp'
 import * as path from 'path'
 import * as fs from 'fs'
-
+import * as handlebars from 'handlebars'
 
 import { StateModel } from './Model'
 
@@ -52,8 +52,7 @@ export function applyTemplate(templateFilePath: string,
                               targetFolder: string,
                               filePath: string, 
                               model: StateModel) {
-    filePath = filePath.replace(/Xyz/g, model.name)
-    
+    filePath = filePath.replace(/Xyz/g, model.name)    
     const targetFilePath = path.join(targetFolder, filePath);
 
     let resultContent = []
@@ -61,11 +60,15 @@ export function applyTemplate(templateFilePath: string,
     console.log(`Reading ${templateFilePath}`)
 
     const content = fs.readFileSync(templateFilePath, 'utf-8')
+    const contentFn = handlebars.compile(content, {
+        preventIndent: true
+    })
+    const renderedContent = contentFn(model)
                       .split(/\r?\n/g)
 
-    console.log('Readed content: ', content)
+    console.log('Readed content: ', renderedContent)
 
-    content.forEach(line => {
+    renderedContent.forEach(line => {
                 if (transitionsReading) {
                     if (TRANSITIONS_END_RE.test(line)) {
                         transitionsReading = false;

@@ -40,8 +40,15 @@ export function createPackageFolder(packageName: string) : string {
     return folder
 }
 
-export function isSimpleTemplate(name: string) {
-    return 'java' == name || 'ts' == name;
+const BUNDLED_TEMPLATES = {
+    java: true,
+    ts: true,
+    dot: true,
+    asciidoctor: true
+}
+
+export function isSimpleTemplate(name: string): boolean {
+    return name in BUNDLED_TEMPLATES
 }
 
 function replacePackageAndName(line: string, model: StateModel) : string {

@@ -2,7 +2,14 @@
 
 Code generator for state machines.
 
-Supports `java` and `ts` only, or user defined templates (just point to the folder).
+Supports:
+
+* java - a Java 8 implementation.
+* ts - a TypeScript implementation.
+* dot - a GraphViz dot file that documents the state machine.
+* asciidoctor - an asciidoctor file that documents the state
+  machine.
+* local templates - just point to the folder.
 
 ## Sample Test Machine Definition
 

@@ -238,8 +238,14 @@ module.exports =
 	    return folder;
 	}
 	exports.createPackageFolder = createPackageFolder;
+	var BUNDLED_TEMPLATES = {
+	    java: true,
+	    ts: true,
+	    dot: true,
+	    asciidoctor: true
+	};
 	function isSimpleTemplate(name) {
-	    return 'java' == name || 'ts' == name;
+	    return name in BUNDLED_TEMPLATES;
 	}
 	exports.isSimpleTemplate = isSimpleTemplate;
 	function replacePackageAndName(line, model) {

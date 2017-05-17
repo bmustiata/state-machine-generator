@@ -1,0 +1,68 @@
+== XyzStateMachine
+
+=== Class Diagram
+
+[plantuml, XyzClassDiagram, svg]
+------------------------------------------------------------------------------
+enum XyzState {
+//BEGIN_HANDLEBARS
+//{{#each states}}
+//  {{this}}
+//{{/each}}
+//END_HANDLEBARS
+}
+
+class XyzStateMachine<XyzState> {
+    + state: XyzState
+    //BEGIN_HANDLEBARS
+    //{{#each properties}}
+    //{{#if this.default}}
+    //    + {{@key}}: {{this.type}} = {{this.default}}
+    //{{else}}
+    //    + {{@key}}: {{this}}
+    //{{/if}}
+    //{{/each}}
+    //END_HANDLEBARS
+    .. transitions ..
+//BEGIN_HANDLEBARS
+//{{#each transitionSet}}
+//    + {{this}}(data?: Object): XyzState
+//{{/each}}
+//END_HANDLEBARS
+    .. data routing ..
+    + sendData(data: Object): XyzState
+    + sendData(newState: XyzState, data: Object): XyzState
+    + forwardData(newState: XyzState, data: Object): XyzState
+    + onData(state: XyzState, callback: Function)
+    .. events ..
+    + beforeEnter(state: XyzState, callback: Function)
+    + beforeLeave(state: XyzState, callback: Function)
+    + afterEnter(state: XyzState, callback: Function)
+    + afterLeave(state: XyzState, callback: Function)
+    .. general transitions ..
+    + changeState(state: XyzState, data?: Object): XyzState
+    + transition(name: string, data?: Object): XyzState
+}
+
+class XyzStateChangeEvent<XyzState> {
+    + <<readonly>> previousState: XyzState
+    + <<readonly>> targetState: XyzState
+    + data: Object
+    + cancel()
+}
+------------------------------------------------------------------------------
+
+=== State Diagram
+
+[plantuml, XyzStateDiagram, svg]
+------------------------------------------------------------------------------
+//BEGIN_HANDLEBARS
+//{{#each states}}
+//{{this}}:
+//{{/each}}
+//
+//{{#each transitions}}
+//{{startState}} --> {{endState}} : {{name}}()
+//{{/each}}
+//END_HANDLEBARS
+------------------------------------------------------------------------------

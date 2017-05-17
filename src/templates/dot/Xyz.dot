@@ -1,0 +1,12 @@
+digraph Xyz {
+    // generate with:
+    // dot -Tpng -OXyz Xyz.dot
+    node [shape=rectangle];
+
+    //BEGIN_HANDLEBARS
+    //{{#each transitions}}
+    //    {{startState}} -> {{endState}} [label="{{name}}"];
+    //{{/each}}
+    //END_HANDLEBARS
+}
+

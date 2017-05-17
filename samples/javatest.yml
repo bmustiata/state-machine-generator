@@ -11,3 +11,9 @@ transitions:
   RUNNING:
     pause: DEFAULT
     stop: STOPPED
+properties:
+  name: String
+  active:
+    type: boolean
+    default: true
+

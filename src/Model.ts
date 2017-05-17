@@ -14,6 +14,7 @@ export interface StateModel {
   package: string
   states: Array<State>
   transitions: Array<Transition>
+  transitionSet: Array<string>
 }
 
 /**
@@ -25,7 +26,8 @@ export function readStateModel(fileName: string) : StateModel {
     name: 'Test',
     package: 'com.ciplogic.test',
     states: [],
-    transitions: []
+    transitions: [],
+    transitionSet: []
   }
 
   const content = fs.readFileSync(fileName, 'utf-8')
@@ -70,6 +72,9 @@ export function readStateModel(fileName: string) : StateModel {
 
   Object.keys(fileItems.transitions).forEach((startStateName) => {
     Object.keys(fileItems.transitions[startStateName]).forEach((transitionName) => {
+      if (result.transitionSet.indexOf(transitionName) < 0) {
+        result.transitionSet.push(transitionName)
+      }
       addTransition(startStateName, transitionName);
     })
   })

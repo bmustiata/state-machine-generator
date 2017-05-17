@@ -141,7 +141,8 @@ module.exports =
 	        name: 'Test',
 	        package: 'com.ciplogic.test',
 	        states: [],
-	        transitions: []
+	        transitions: [],
+	        transitionSet: []
 	    };
 	    var content = fs.readFileSync(fileName, 'utf-8');
 	    var fileItems = jsYaml.load(content);
@@ -175,6 +176,9 @@ module.exports =
 	    }
 	    Object.keys(fileItems.transitions).forEach(function (startStateName) {
 	        Object.keys(fileItems.transitions[startStateName]).forEach(function (transitionName) {
+	            if (result.transitionSet.indexOf(transitionName) < 0) {
+	                result.transitionSet.push(transitionName);
+	            }
 	            addTransition(startStateName, transitionName);
 	        });
 	    });
@@ -306,10 +310,7 @@ module.exports =
 	    });
 	    readStateMachine.afterEnter(TemplateStateMachine_1.TemplateState.TRANSITION_SET, function (ev) {
 	        var pattern = ev.data;
-	        var transitionSet = new Set(model.transitions.map(function (it) {
-	            return it.name;
-	        }));
-	        transitionSet.forEach(function (transitionName) {
+	        model.transitionSet.forEach(function (transitionName) {
 	            var transitionString = pattern.replace(/TRANSITION_NAME/g, transitionName);
 	            resultContent.push(replacePackageAndName(transitionString, model));
 	        });

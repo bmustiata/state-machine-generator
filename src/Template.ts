@@ -138,8 +138,7 @@ export function applyTemplate(templateFilePath: string,
 
     readStateMachine.afterEnter(TemplateState.TRANSITION_SET, (ev) => {
         const pattern: string = ev.data
-        const transitionSet = new Set(model.transitions.map(it => it.name))
-        transitionSet.forEach(transitionName => {
+        model.transitionSet.forEach(transitionName => {
             const transitionString = pattern
                 .replace(/TRANSITION_NAME/g, transitionName)
             

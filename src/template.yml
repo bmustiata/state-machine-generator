@@ -1,0 +1,22 @@
+name: Template
+package: .
+states:
+  - NORMAL_TEXT
+  - TRANSITIONS
+  - TRANSITION_SET
+  - STATES
+  - HANDLEBARS
+transitions:
+  NORMAL_TEXT:
+    startTransitions: TRANSITIONS
+    startTransitionSet: TRANSITION_SET
+    startStates: STATES
+    startHandlebars: HANDLEBARS
+  TRANSITIONS:
+    normalText: NORMAL_TEXT
+  TRANSITION_SET:
+    normalText: NORMAL_TEXT
+  STATES:
+    normalText: NORMAL_TEXT
+  HANDLEBARS:
+    normalText: NORMAL_TEXT

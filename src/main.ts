@@ -25,7 +25,7 @@ if (isSimpleTemplate(templateName)) {
     templateFolder = path.resolve(path.join(
         __dirname, '../src/templates/', templateName,'/'))
 } else {
-    templateFolder = templateName
+    templateFolder = path.resolve(templateName)
 }
 
 const targetFolder = path.join('.', createPackageFolder(model.package))

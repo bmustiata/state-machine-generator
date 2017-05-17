@@ -3,6 +3,8 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as handlebars from 'handlebars'
 
+import { TemplateState, TemplateStateMachine } from './TemplateStateMachine'
+
 import { StateModel } from './Model'
 
 const TRANSITIONS_RE = /^\s*\/\/ BEGIN_TRANSITIONS:\s*(.*)\s*$/m
@@ -13,6 +15,10 @@ const TRANSITION_SET_END_RE = /^\s*\/\/ END_TRANSITION_SET\s*$/m
 
 const STATES_RE = /^\s*\/\/ BEGIN_STATES:\s*(.*)\s*$/m
 const STATES_END_RE = /^\s*\/\/ END_STATES\s*$/m
+
+const HANDLEBARS_RE =  /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m
+const HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m
+const HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m
 
 /**
  * 
@@ -37,10 +43,6 @@ function replacePackageAndName(line: string, model: StateModel) : string {
     return line
 }
 
-let transitionsReading = false
-let transitionSetReading = false
-let stateReading = false
-
 /**
  * Write the template file.
  * @param templateFilePath The source template.
@@ -54,98 +56,115 @@ export function applyTemplate(templateFilePath: string,
                               model: StateModel) {
     filePath = filePath.replace(/Xyz/g, model.name)    
     const targetFilePath = path.join(targetFolder, filePath);
+    const readStateMachine = new TemplateStateMachine()
+
+    readStateMachine.onData(TemplateState.NORMAL_TEXT, (line) => {
+        const transitionMatch = TRANSITIONS_RE.exec(line)
+        if (transitionMatch) {
+            const pattern = transitionMatch[1]
+            readStateMachine.changeState(TemplateState.TRANSITIONS, pattern)
+
+            return
+        }
+
+        const transitionSetMatch = TRANSITION_SET_RE.exec(line)
+        if (transitionSetMatch) {
+            const pattern = transitionSetMatch[1]
+            readStateMachine.changeState(TemplateState.TRANSITION_SET, pattern)
+
+            return
+        }
+
+        const statesMatch = STATES_RE.exec(line)
+        if (statesMatch) {
+            const pattern = statesMatch[1]
+            readStateMachine.changeState(TemplateState.STATES, pattern)
+
+            return
+        }
+
+        if (HANDLEBARS_RE.test(line)) {
+            return TemplateState.HANDLEBARS
+        }
+
+        resultContent.push(replacePackageAndName(line, model))
+    })
+
+    readStateMachine.onData(TemplateState.HANDLEBARS, (line) => {
+        if (HANDLEBARS_END_RE.test(line)) {
+            return TemplateState.NORMAL_TEXT
+        }
+
+        const handlebarsContentMatcher = HANDLEBARS_CONTENT.exec(line)
+
+        if (!handlebarsContentMatcher) {
+            console.error("All lines in the handlebars block should be " +
+                            "preceeded by a comment `//`, that will be removed. Line:", line);
+            process.exit(2);
+        }
+
+        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model))
+    })
+
+    readStateMachine.onData(TemplateState.STATES, (line) => {
+        if (STATES_END_RE.test(line)) {
+            return TemplateState.NORMAL_TEXT
+        }
+    })
+
+    readStateMachine.onData(TemplateState.TRANSITIONS, (line) => {
+        if (TRANSITIONS_END_RE.test(line)) {
+            return TemplateState.NORMAL_TEXT
+        }
+    })
+
+    readStateMachine.onData(TemplateState.TRANSITION_SET, (line) => {
+        if (TRANSITION_SET_END_RE.test(line)) {
+            return TemplateState.NORMAL_TEXT
+        }
+    })
+
+    readStateMachine.afterEnter(TemplateState.TRANSITIONS, (ev) => {
+        model.transitions.forEach(transition => {
+            const pattern : string = ev.data
+            const transitionString = pattern
+                .replace(/TRANSITION_NAME/g, transition.name)
+                .replace(/FROM_STATE/g, transition.startState)
+                .replace(/TO_STATE/g, transition.endState)
+            
+            resultContent.push(replacePackageAndName(transitionString, model))
+        })
+    })
+
+    readStateMachine.afterEnter(TemplateState.TRANSITION_SET, (ev) => {
+        const pattern: string = ev.data
+        const transitionSet = new Set(model.transitions.map(it => it.name))
+        transitionSet.forEach(transitionName => {
+            const transitionString = pattern
+                .replace(/TRANSITION_NAME/g, transitionName)
+            
+            resultContent.push(replacePackageAndName(transitionString, model))
+        })
+    })
+
+    readStateMachine.afterEnter(TemplateState.STATES, (ev) => {
+        model.states.forEach(state => {
+            const pattern: string = ev.data
+            const stateString = pattern.replace('STATE_NAME', state)
+            
+            resultContent.push(replacePackageAndName(stateString, model))
+        })
+    })
 
     let resultContent = []
-
-    console.log(`Reading ${templateFilePath}`)
-
     const content = fs.readFileSync(templateFilePath, 'utf-8')
-    const contentFn = handlebars.compile(content, {
+                      .split(/\r?\n/g)
+    content.forEach(data => readStateMachine.sendData(data))
+
+    const contentFn = handlebars.compile(resultContent.join('\n'), {
         preventIndent: true
     })
     const renderedContent = contentFn(model)
-                      .split(/\r?\n/g)
 
-    console.log('Readed content: ', renderedContent)
-
-    renderedContent.forEach(line => {
-                if (transitionsReading) {
-                    if (TRANSITIONS_END_RE.test(line)) {
-                        transitionsReading = false;
-                    }
-
-                    return; // ignore line
-                }
-
-                if (transitionSetReading) {
-                    if (TRANSITION_SET_END_RE.test(line)) {
-                        transitionSetReading = false
-                    }
-
-                    return; // ignore the line
-                }
-
-                if (stateReading) {
-                    if (STATES_END_RE.test(line)) {
-                        stateReading = false
-                    }
-
-                    return; // also ingore line
-                }
-
-                const transitionMatch = TRANSITIONS_RE.exec(line)
-                if (transitionMatch) {
-                    const pattern = transitionMatch[1]
-                    model.transitions.forEach(transition => {
-                        const transitionString = pattern
-                            .replace(/TRANSITION_NAME/g, transition.name)
-                            .replace(/FROM_STATE/g, transition.startState)
-                            .replace(/TO_STATE/g, transition.endState)
-                        
-                        resultContent.push(replacePackageAndName(transitionString, model))
-                    })
-
-                    transitionsReading = true
-
-                    return
-                }
-
-                const transitionSetMatch = TRANSITION_SET_RE.exec(line)
-                if (transitionSetMatch) {
-                    const pattern = transitionSetMatch[1]
-                    const transitionSet = new Set(model.transitions.map(it => it.name))
-                    transitionSet.forEach(transitionName => {
-                        const transitionString = pattern
-                            .replace(/TRANSITION_NAME/g, transitionName)
-                        
-                        resultContent.push(replacePackageAndName(transitionString, model))
-                    })
-
-                    transitionSetReading = true
-
-                    return
-                }
-
-                const stateMatch = STATES_RE.exec(line)
-                if (stateMatch) {
-                    const pattern = stateMatch[1]
-                    model.states.forEach(state => {
-                        const stateString = pattern
-                            .replace('STATE_NAME', state)
-                        
-                        resultContent.push(replacePackageAndName(stateString, model))
-                    })
-
-                    stateReading = true
-
-                    return
-                }
-
-
-                resultContent.push(replacePackageAndName(line, model))
-            })
-
-    let fileContent = resultContent.join('\n')
-
-    fs.writeFileSync(targetFilePath, fileContent, {encoding: 'utf-8'})
+    fs.writeFileSync(targetFilePath, renderedContent, {encoding: 'utf-8'})
 }

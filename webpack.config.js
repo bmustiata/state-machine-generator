@@ -1,6 +1,5 @@
 var webpack = require('webpack');
 var SmartBannerPlugin = require('smart-banner-webpack-plugin');
-
 var fs = require("fs");
 var localNodeModules = fs.readdirSync("node_modules");
 

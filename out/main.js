@@ -182,8 +182,9 @@ module.exports =
 	            addTransition(startStateName, transitionName);
 	        });
 	    });
-	    console.log("Item: " + JSON.stringify(result));
-	    return result;
+	    var finalResult = Object.assign({}, fileItems, result);
+	    console.log("Item: " + JSON.stringify(finalResult));
+	    return finalResult;
 	}
 	exports.readStateModel = readStateModel;
 
@@ -220,6 +221,12 @@ module.exports =
 	var HANDLEBARS_RE = /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m;
 	var HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m;
 	var HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m;
+	handlebars.registerHelper('capitalize', function (s) {
+	    if (!s) {
+	        return s;
+	    }
+	    return s.substr(0, 1).toUpperCase() + s.substr(1);
+	});
 	/**
 	 *
 	 * @param packageName The folder sub structure to create.

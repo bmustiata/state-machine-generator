@@ -20,6 +20,14 @@ const HANDLEBARS_RE =  /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m
 const HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m
 const HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m
 
+handlebars.registerHelper('capitalize', (s: string) => {
+    if (!s) {
+        return s
+    }
+
+    return s.substr(0, 1).toUpperCase() + s.substr(1)
+})
+
 /**
  * 
  * @param packageName The folder sub structure to create.

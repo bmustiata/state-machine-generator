@@ -79,7 +79,12 @@ export function readStateModel(fileName: string) : StateModel {
     })
   })
 
-  console.log(`Item: ${JSON.stringify(result)}`)
+  const finalResult : StateModel = {
+    ...fileItems,
+    ...result
+  }
 
-  return result;
+  console.log(`Item: ${JSON.stringify(finalResult)}`)
+
+  return finalResult
 }

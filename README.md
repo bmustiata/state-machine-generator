@@ -99,3 +99,44 @@ generate methods that will do said transitions:
 // END_TRANSITION_SET
 ```
 
+## Handlebars Support
+
+From version `2.0.0`, it is also possible to have a handlebars template in.
+
+```java
+// BEGIN_HANDLEBARS
+// {{#each transitions}}
+// // {{name}}
+// {{/each}}
+// END_HANDLEBARS
+```
+
+Each line from the handlebars template must be prefixed by a comment.
+
+### Model
+
+The model data that is going to be sent to the template implements the `StateModel` 
+interface shown below. All the properties in the `yml` file are copied in the
+model that will be passed to the template.
+
+```typescript
+type State = string;
+
+export interface Transition {
+    name: string
+    startState: State
+    endState: State
+}
+
+export interface StateModel {
+  name: string
+  package: string
+  states: Array<State>
+  transitions: Array<Transition>
+  transitionSet: Array<string>
+}
+```
+
+### capitalize Helper
+
+This helper is passed into the handlebars engine, and capitalizes the string.

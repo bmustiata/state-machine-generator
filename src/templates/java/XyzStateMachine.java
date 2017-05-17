@@ -18,8 +18,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class XyzStateMachine {
-    private Set<Integer> transitionSet = new HashSet<>();
-    private Map<Integer, Map<String, Integer>> linkMap = new HashMap<>();
+    private static Set<Integer> transitionSet = new HashSet<>();
+    private static Map<Integer, Map<String, Integer>> linkMap = new HashMap<>();
 
     private final XyzState initialState;
     private volatile XyzState currentState;
@@ -29,6 +29,25 @@ public class XyzStateMachine {
     private XyzStateListeners<XyzStateChangeEvent> listeners = new XyzStateListeners<>();
     private XyzDataListeners dataListeners = new XyzDataListeners();
 
+    //BEGIN_HANDLEBARS
+    //{{#each properties}}
+    //{{#if this.default}}
+    //    private {{this.type}} {{@key}} = {{this.default}};
+    //{{else}}
+    //    private {{this}} {{@key}};
+    //{{/if}}
+    //{{/each}}
+    //END_HANDLEBARS
+
+    static {
+        // BEGIN_TRANSITIONS: XyzStateMachine.registerTransition("TRANSITION_NAME", XyzState.FROM_STATE, XyzState.TO_STATE);
+        XyzStateMachine.registerTransition("run", XyzState.DEFAULT, XyzState.RUNNING);
+        XyzStateMachine.registerTransition(null, XyzState.DEFAULT, XyzState.STOPPED);
+        XyzStateMachine.registerTransition(null, XyzState.RUNNING, XyzState.DEFAULT);
+        XyzStateMachine.registerTransition(null, XyzState.RUNNING, XyzState.STOPPED);
+        // END_TRANSITIONS
+    }
+
     public XyzStateMachine() {
         this(XyzState.values()[0]);
     }
@@ -37,14 +56,6 @@ public class XyzStateMachine {
         if (initialState == null) {
             throw new IllegalArgumentException("Can not start state machine. Initial state is null.");
         }
-
-        // BEGIN_TRANSITIONS: this.registerTransition("TRANSITION_NAME", XyzState.FROM_STATE, XyzState.TO_STATE);
-        this.registerTransition("run", XyzState.DEFAULT, XyzState.RUNNING);
-        this.registerTransition(null, XyzState.DEFAULT, XyzState.STOPPED);
-        this.registerTransition(null, XyzState.RUNNING, XyzState.DEFAULT);
-        this.registerTransition(null, XyzState.RUNNING, XyzState.STOPPED);
-        // END_TRANSITIONS
-
 
         // initial state
         this.initialState = initialState;
@@ -57,14 +68,14 @@ public class XyzStateMachine {
     public XyzState run(Object data) { return this.transition("run", data); }
     // END_TRANSITION_SET
 
-    private void registerTransition(String connectionName, XyzState fromState, XyzState toState) {
-        this.transitionSet.add(fromState.ordinal() << 14 | toState.ordinal());
+    private static void registerTransition(String connectionName, XyzState fromState, XyzState toState) {
+        transitionSet.add(fromState.ordinal() << 14 | toState.ordinal());
 
         if (connectionName == null) {
             return;
         }
 
-        this.linkMap.computeIfAbsent(fromState.ordinal(), x -> new HashMap<>())
+        linkMap.computeIfAbsent(fromState.ordinal(), x -> new HashMap<>())
             .computeIfAbsent(connectionName, x -> toState.ordinal());
     }
 
@@ -217,8 +228,6 @@ public class XyzStateMachine {
     }
 
     public XyzState transition(String linkName, Object data) {
-        this.ensureStateMachineInitialized();
-
         Map<String, Integer> linkMap = this.linkMap.get(currentState.ordinal());
 
         if (linkMap == null) {
@@ -233,4 +242,29 @@ public class XyzStateMachine {
 
         return changeState(XyzState.values()[targetStateIndex], data);
     }
+
+    // BEGIN_HANDLEBARS
+    //{{#each properties}}
+    //{{#if this.default}}
+    //    public void set{{capitalize @key}}({{this.type}} value) {
+    //        this.{{@key}} = value;
+    //    }
+    //
+    //    public {{this.type}} get{{capitalize @key}}() {
+    //        return this.{{@key}};
+    //    }
+    //
+    //{{else}}
+    //    public void set{{capitalize @key}}({{this}} value) {
+    //        this.{{@key}} = value;
+    //    }
+    //
+    //    public {{this}} get{{capitalize @key}}() {
+    //        return this.{{@key}};
+    //    }
+    //
+    //{{/if}}
+    //{{/each}}
+    // END_HANDLEBARS
+
 }

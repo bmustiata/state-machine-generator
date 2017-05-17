@@ -52,6 +52,16 @@ registerTransition(null, XyzState.RUNNING, XyzState.STOPPED);
 // END_TRANSITIONS
 
 export class XyzStateMachine {
+    //BEGIN_HANDLEBARS
+    //{{#each properties}}
+    //{{#if this.default}}
+    //    {{@key}} : {{this.type}} = {{this.default}};
+    //{{else}}
+    //    {{@key}} : {{this}};
+    //{{/if}}
+    //{{/each}}
+    //END_HANDLEBARS
+
     private currentState: XyzState = null
     private initialState: XyzState
 
@@ -111,7 +121,6 @@ export class XyzStateMachine {
 
         if (this.currentState != null && !transitionSet[this.currentState << 16 | targetState]) {
             console.error(`No transition exists between ${this.currentState} -> ${targetState}.`);
-            console.error(new Error().stack)
             return this.currentState;
         }
 

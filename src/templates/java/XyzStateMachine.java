@@ -203,7 +203,44 @@ public class XyzStateMachine {
         return dataListeners.onData(state, callback);
     }
 
+    /**
+     * Forward the data for another state, ignoring the resulting state,
+     * so we can just short circuit the execution with
+     * `return stateMachine.forwardData(..)`
+     * @param state
+     * @param data
+     * @param <T>
+     * @return
+     */
+    public <T> XyzState forwardData(XyzState state, T data) {
+        sendData(state, data);
+        return null;
+    }
 
+    /**
+     * Attempt at changing the state to the new state first, then pass
+     * the data to the state machine.
+     *
+     * @param state
+     * @param data
+     * @param <T>
+     * @return
+     */
+    public <T> XyzState sendData(XyzState state, T data) {
+        ensureStateMachineInitialized();
+
+        changeState(state);
+
+        return sendData(data);
+    }
+
+    /**
+     * Send some data into the state machine. This will be processed
+     * by the current state.
+     * @param data
+     * @param <T>
+     * @return
+     */
     public <T> XyzState sendData(T data) {
         ensureStateMachineInitialized();
 
@@ -228,6 +265,8 @@ public class XyzStateMachine {
     }
 
     public XyzState transition(String linkName, Object data) {
+        this.ensureStateMachineInitialized();
+
         Map<String, Integer> linkMap = this.linkMap.get(currentState.ordinal());
 
         if (linkMap == null) {

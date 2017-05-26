@@ -113,9 +113,8 @@ export function applyTemplate(templateFilePath: string,
         const handlebarsContentMatcher = HANDLEBARS_CONTENT.exec(line)
 
         if (!handlebarsContentMatcher) {
-            console.error("All lines in the handlebars block should be " +
-                            "preceeded by a comment `//`, that will be removed. Line:", line);
-            process.exit(2);
+            console.log('Ignored non commented HBS line: ', line)
+            return
         }
 
         resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model))

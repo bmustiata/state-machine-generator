@@ -221,6 +221,9 @@ module.exports =
 	var HANDLEBARS_RE = /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m;
 	var HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m;
 	var HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m;
+	var HANDLEBARS_SHARP_RE = /^\s*#\s*BEGIN_HANDLEBARS\s*$/m;
+	var HANDLEBARS_SHARP_CONTENT = /^\s*#(.*)$/m;
+	var HANDLEBARS_SHARP_END_RE = /^\s*#\s*END_HANDLEBARS\s*$/m;
 	handlebars.registerHelper('capitalize', function (s) {
 	    if (!s) {
 	        return s;
@@ -242,7 +245,8 @@ module.exports =
 	    java: true,
 	    ts: true,
 	    dot: true,
-	    asciidoctor: true
+	    asciidoctor: true,
+	    python: true
 	};
 	function isSimpleTemplate(name) {
 	    return name in BUNDLED_TEMPLATES;
@@ -286,6 +290,9 @@ module.exports =
 	        if (HANDLEBARS_RE.test(line)) {
 	            return TemplateStateMachine_1.TemplateState.HANDLEBARS;
 	        }
+	        if (HANDLEBARS_SHARP_RE.test(line)) {
+	            return TemplateStateMachine_1.TemplateState.HANDLEBARS_SHARP;
+	        }
 	        resultContent.push(replacePackageAndName(line, model));
 	    });
 	    readStateMachine.onData(TemplateStateMachine_1.TemplateState.HANDLEBARS, function (line) {
@@ -293,6 +300,17 @@ module.exports =
 	            return TemplateStateMachine_1.TemplateState.NORMAL_TEXT;
 	        }
 	        var handlebarsContentMatcher = HANDLEBARS_CONTENT.exec(line);
+	        if (!handlebarsContentMatcher) {
+	            console.log('Ignored non commented HBS line: ', line);
+	            return;
+	        }
+	        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model));
+	    });
+	    readStateMachine.onData(TemplateStateMachine_1.TemplateState.HANDLEBARS_SHARP, function (line) {
+	        if (HANDLEBARS_SHARP_END_RE.test(line)) {
+	            return TemplateStateMachine_1.TemplateState.NORMAL_TEXT;
+	        }
+	        var handlebarsContentMatcher = HANDLEBARS_SHARP_CONTENT.exec(line);
 	        if (!handlebarsContentMatcher) {
 	            console.log('Ignored non commented HBS line: ', line);
 	            return;
@@ -340,7 +358,8 @@ module.exports =
 	    content.forEach(function (data) {
 	        return readStateMachine.sendData(data);
 	    });
-	    var contentFn = handlebars.compile(resultContent.join('\n'), {
+	    var finalTemplate = resultContent.join('\n');
+	    var contentFn = handlebars.compile(finalTemplate, {
 	        preventIndent: true
 	    });
 	    var renderedContent = contentFn(model);
@@ -376,6 +395,7 @@ module.exports =
 	    TemplateState[TemplateState["TRANSITION_SET"] = 2] = "TRANSITION_SET";
 	    TemplateState[TemplateState["STATES"] = 3] = "STATES";
 	    TemplateState[TemplateState["HANDLEBARS"] = 4] = "HANDLEBARS";
+	    TemplateState[TemplateState["HANDLEBARS_SHARP"] = 5] = "HANDLEBARS_SHARP";
 	})(TemplateState = exports.TemplateState || (exports.TemplateState = {}));
 	
 	var TemplateStateChangeEvent = function () {
@@ -428,10 +448,12 @@ module.exports =
 	registerTransition("startTransitionSet", TemplateState.NORMAL_TEXT, TemplateState.TRANSITION_SET);
 	registerTransition("startStates", TemplateState.NORMAL_TEXT, TemplateState.STATES);
 	registerTransition("startHandlebars", TemplateState.NORMAL_TEXT, TemplateState.HANDLEBARS);
+	registerTransition("startHandlebarsSharp", TemplateState.NORMAL_TEXT, TemplateState.HANDLEBARS_SHARP);
 	registerTransition("normalText", TemplateState.TRANSITIONS, TemplateState.NORMAL_TEXT);
 	registerTransition("normalText", TemplateState.TRANSITION_SET, TemplateState.NORMAL_TEXT);
 	registerTransition("normalText", TemplateState.STATES, TemplateState.NORMAL_TEXT);
 	registerTransition("normalText", TemplateState.HANDLEBARS, TemplateState.NORMAL_TEXT);
+	registerTransition("normalText", TemplateState.HANDLEBARS_SHARP, TemplateState.NORMAL_TEXT);
 	
 	var TemplateStateMachine = function () {
 	    function TemplateStateMachine(initialState) {
@@ -446,11 +468,13 @@ module.exports =
 	        this.transitionListeners[TemplateState.TRANSITION_SET] = new EventListener();
 	        this.transitionListeners[TemplateState.STATES] = new EventListener();
 	        this.transitionListeners[TemplateState.HANDLEBARS] = new EventListener();
+	        this.transitionListeners[TemplateState.HANDLEBARS_SHARP] = new EventListener();
 	        this.dataListeners[TemplateState.NORMAL_TEXT] = new EventListener();
 	        this.dataListeners[TemplateState.TRANSITIONS] = new EventListener();
 	        this.dataListeners[TemplateState.TRANSITION_SET] = new EventListener();
 	        this.dataListeners[TemplateState.STATES] = new EventListener();
 	        this.dataListeners[TemplateState.HANDLEBARS] = new EventListener();
+	        this.dataListeners[TemplateState.HANDLEBARS_SHARP] = new EventListener();
 	    }
 	
 	    _createClass(TemplateStateMachine, [{
@@ -472,6 +496,11 @@ module.exports =
 	        key: "startHandlebars",
 	        value: function startHandlebars(data) {
 	            return this.transition("startHandlebars", data);
+	        }
+	    }, {
+	        key: "startHandlebarsSharp",
+	        value: function startHandlebarsSharp(data) {
+	            return this.transition("startHandlebarsSharp", data);
 	        }
 	    }, {
 	        key: "normalText",
@@ -503,7 +532,6 @@ module.exports =
 	            }
 	            if (this.currentState != null && !transitionSet[this.currentState << 16 | targetState]) {
 	                console.error("No transition exists between " + this.currentState + " -> " + targetState + ".");
-	                console.error(new Error().stack);
 	                return this.currentState;
 	            }
 	            this.currentChangeStateEvent = stateChangeEvent;
@@ -561,10 +589,32 @@ module.exports =
 	        value: function onData(state, callback) {
 	            return this.dataListeners[state].addListener('data', callback);
 	        }
+	        /**
+	         * Changes the state machine into the new state, then sends the data
+	         * ignoring the result. This is so on `onData` calls we can just
+	         * short-circuit the execution using: `return stateMachine.forwardData(..)`
+	         *
+	         * @param newState The state to transition into.
+	         * @param data The data to send.
+	         */
+	
+	    }, {
+	        key: "forwardData",
+	        value: function forwardData(newState, data) {
+	            this.sendData(newState, data);
+	            return null;
+	        }
 	    }, {
 	        key: "sendData",
-	        value: function sendData(data) {
+	        value: function sendData(newState, data) {
 	            this.ensureStateMachineInitialized();
+	            if (typeof data == 'undefined') {
+	                data = newState;
+	                newState = undefined;
+	            }
+	            if (typeof newState != 'undefined') {
+	                this.changeState(newState, data);
+	            }
 	            var targetState = this.dataListeners[this.currentState].fire('data', data);
 	            if (targetState != null) {
 	                return this.changeState(targetState, data);

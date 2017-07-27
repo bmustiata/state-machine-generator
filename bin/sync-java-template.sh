@@ -12,3 +12,8 @@ rm -fr $STATE_MACHINE_GENERATOR_FOLDER/src/templates/ts/
 mkdir -p $STATE_MACHINE_GENERATOR_FOLDER/src/templates/ts/
 cp -r $STATE_MACHINE_JAVA_TS/src/sm/* $STATE_MACHINE_GENERATOR_FOLDER/src/templates/ts/
 
+STATE_MACHINE_PYTHON=$(readlink -f $(dirname $(readlink -f "$0"))/../../state-machine-python)
+rm -fr $STATE_MACHINE_GENERATOR_FOLDER/src/templates/python/
+mkdir -p $STATE_MACHINE_GENERATOR_FOLDER/src/templates/python/
+cp -r $STATE_MACHINE_PYTHON/smpy/* $STATE_MACHINE_GENERATOR_FOLDER/src/templates/python/
+

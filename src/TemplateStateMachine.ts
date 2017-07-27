@@ -4,6 +4,7 @@ TRANSITIONS,
 TRANSITION_SET,
 STATES,
 HANDLEBARS,
+HANDLEBARS_SHARP,
 }
 
 export class TemplateStateChangeEvent {
@@ -48,12 +49,15 @@ registerTransition("startTransitions", TemplateState.NORMAL_TEXT, TemplateState.
 registerTransition("startTransitionSet", TemplateState.NORMAL_TEXT, TemplateState.TRANSITION_SET);
 registerTransition("startStates", TemplateState.NORMAL_TEXT, TemplateState.STATES);
 registerTransition("startHandlebars", TemplateState.NORMAL_TEXT, TemplateState.HANDLEBARS);
+registerTransition("startHandlebarsSharp", TemplateState.NORMAL_TEXT, TemplateState.HANDLEBARS_SHARP);
 registerTransition("normalText", TemplateState.TRANSITIONS, TemplateState.NORMAL_TEXT);
 registerTransition("normalText", TemplateState.TRANSITION_SET, TemplateState.NORMAL_TEXT);
 registerTransition("normalText", TemplateState.STATES, TemplateState.NORMAL_TEXT);
 registerTransition("normalText", TemplateState.HANDLEBARS, TemplateState.NORMAL_TEXT);
+registerTransition("normalText", TemplateState.HANDLEBARS_SHARP, TemplateState.NORMAL_TEXT);
 
 export class TemplateStateMachine {
+
     private currentState: TemplateState = null
     private initialState: TemplateState
 
@@ -70,11 +74,13 @@ this.transitionListeners[TemplateState.TRANSITIONS] = new EventListener<Transiti
 this.transitionListeners[TemplateState.TRANSITION_SET] = new EventListener<TransitionCallback>()
 this.transitionListeners[TemplateState.STATES] = new EventListener<TransitionCallback>()
 this.transitionListeners[TemplateState.HANDLEBARS] = new EventListener<TransitionCallback>()
+this.transitionListeners[TemplateState.HANDLEBARS_SHARP] = new EventListener<TransitionCallback>()
 this.dataListeners[TemplateState.NORMAL_TEXT] = new EventListener<DataCallback>()
 this.dataListeners[TemplateState.TRANSITIONS] = new EventListener<DataCallback>()
 this.dataListeners[TemplateState.TRANSITION_SET] = new EventListener<DataCallback>()
 this.dataListeners[TemplateState.STATES] = new EventListener<DataCallback>()
 this.dataListeners[TemplateState.HANDLEBARS] = new EventListener<DataCallback>()
+this.dataListeners[TemplateState.HANDLEBARS_SHARP] = new EventListener<DataCallback>()
     }
 
     get state() { 
@@ -86,6 +92,7 @@ startTransitions(data?: any) : TemplateState { return this.transition("startTran
 startTransitionSet(data?: any) : TemplateState { return this.transition("startTransitionSet", data); }
 startStates(data?: any) : TemplateState { return this.transition("startStates", data); }
 startHandlebars(data?: any) : TemplateState { return this.transition("startHandlebars", data); }
+startHandlebarsSharp(data?: any) : TemplateState { return this.transition("startHandlebarsSharp", data); }
 normalText(data?: any) : TemplateState { return this.transition("normalText", data); }
 
     private ensureStateMachineInitialized() {
@@ -114,7 +121,6 @@ normalText(data?: any) : TemplateState { return this.transition("normalText", da
 
         if (this.currentState != null && !transitionSet[this.currentState << 16 | targetState]) {
             console.error(`No transition exists between ${this.currentState} -> ${targetState}.`);
-            console.error(new Error().stack)
             return this.currentState;
         }
 
@@ -178,8 +184,44 @@ normalText(data?: any) : TemplateState { return this.transition("normalText", da
         return this.dataListeners[state].addListener('data', callback)
     }
 
-    sendData(data: any) : TemplateState {
+    /**
+     * Changes the state machine into the new state, then sends the data
+     * ignoring the result. This is so on `onData` calls we can just
+     * short-circuit the execution using: `return stateMachine.forwardData(..)`
+     * 
+     * @param newState The state to transition into.
+     * @param data The data to send.
+     */
+    forwardData(newState: TemplateState, data: any) : TemplateState {
+        this.sendData(newState, data)
+        return null
+    }
+
+    /**
+     * Sends the data into the state machine, to be processed by listeners
+     * registered with `onData`.
+     * @param data The data to send.
+     */
+    sendData(data: any) : TemplateState;
+    /**
+     * Transitions first the state machine into the new state, then it
+     * will send the data into the state machine.
+     * @param newState 
+     * @param data 
+     */
+    sendData(newState: TemplateState, data: any) : TemplateState;
+    sendData(newState: any, data?: any) {
         this.ensureStateMachineInitialized()
+
+        if (typeof data == 'undefined') {
+            data = newState
+            newState = undefined
+        }
+
+        if (typeof newState != 'undefined') {
+            this.changeState(newState, data)
+        }
+
         const targetState = this.dataListeners[this.currentState].fire('data', data)
 
         if (targetState != null) {

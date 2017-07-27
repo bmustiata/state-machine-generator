@@ -6,6 +6,7 @@ Supports:
 
 * java - a Java 8 implementation.
 * ts - a TypeScript implementation.
+* python - a Python implementation.
 * dot - a GraphViz dot file that documents the state machine.
 * asciidoctor - an asciidoctor file that documents the state
   machine.
@@ -113,9 +114,25 @@ From version `2.0.0`, it is also possible to have a handlebars template in.
 ```java
 // BEGIN_HANDLEBARS
 // {{#each transitions}}
-// // {{name}}
+// System.out.println("{{startState}} --{{name}}--> {{endState}}");
 // {{/each}}
+System.out.println("STOPPED --run--> RUNNING");
 // END_HANDLEBARS
+```
+
+The code that is not commented in the section will be removed from the output.
+Thus you can create unit tests for the actual implementations of the state
+machines, and test them aginst the template itself.
+
+From version `2.2.0`, it is also possible to have `#` prefixing handlebars templates.
+
+```python
+#BEGIN_HANDLEBARS
+#{{#each transitions}}
+#print('{{startState}} --{{name}}--> {{endState}}')
+#{{/each}}
+print('STOPPED --run--> RUNNING')
+#END_HANDLEBARS
 ```
 
 Each line from the handlebars template must be prefixed by a comment.

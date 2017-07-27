@@ -6,12 +6,14 @@ states:
   - TRANSITION_SET
   - STATES
   - HANDLEBARS
+  - HANDLEBARS_SHARP
 transitions:
   NORMAL_TEXT:
     startTransitions: TRANSITIONS
     startTransitionSet: TRANSITION_SET
     startStates: STATES
     startHandlebars: HANDLEBARS
+    startHandlebarsSharp: HANDLEBARS_SHARP
   TRANSITIONS:
     normalText: NORMAL_TEXT
   TRANSITION_SET:
@@ -19,4 +21,6 @@ transitions:
   STATES:
     normalText: NORMAL_TEXT
   HANDLEBARS:
+    normalText: NORMAL_TEXT
+  HANDLEBARS_SHARP:
     normalText: NORMAL_TEXT

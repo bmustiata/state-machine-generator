@@ -20,6 +20,10 @@ const HANDLEBARS_RE =  /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m
 const HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m
 const HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m
 
+const HANDLEBARS_SHARP_RE =  /^\s*#\s*BEGIN_HANDLEBARS\s*$/m
+const HANDLEBARS_SHARP_CONTENT = /^\s*#(.*)$/m
+const HANDLEBARS_SHARP_END_RE = /^\s*#\s*END_HANDLEBARS\s*$/m
+
 handlebars.registerHelper('capitalize', (s: string) => {
     if (!s) {
         return s
@@ -44,7 +48,8 @@ const BUNDLED_TEMPLATES = {
     java: true,
     ts: true,
     dot: true,
-    asciidoctor: true
+    asciidoctor: true,
+    python: true,
 }
 
 export function isSimpleTemplate(name: string): boolean {
@@ -102,6 +107,10 @@ export function applyTemplate(templateFilePath: string,
             return TemplateState.HANDLEBARS
         }
 
+        if (HANDLEBARS_SHARP_RE.test(line)) {
+            return TemplateState.HANDLEBARS_SHARP
+        }
+
         resultContent.push(replacePackageAndName(line, model))
     })
 
@@ -111,6 +120,21 @@ export function applyTemplate(templateFilePath: string,
         }
 
         const handlebarsContentMatcher = HANDLEBARS_CONTENT.exec(line)
+
+        if (!handlebarsContentMatcher) {
+            console.log('Ignored non commented HBS line: ', line)
+            return
+        }
+
+        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model))
+    })
+
+    readStateMachine.onData(TemplateState.HANDLEBARS_SHARP, (line) => {
+        if (HANDLEBARS_SHARP_END_RE.test(line)) {
+            return TemplateState.NORMAL_TEXT
+        }
+
+        const handlebarsContentMatcher = HANDLEBARS_SHARP_CONTENT.exec(line)
 
         if (!handlebarsContentMatcher) {
             console.log('Ignored non commented HBS line: ', line)
@@ -174,10 +198,11 @@ export function applyTemplate(templateFilePath: string,
                       .split(/\r?\n/g)
     content.forEach(data => readStateMachine.sendData(data))
 
-    const contentFn = handlebars.compile(resultContent.join('\n'), {
+    const finalTemplate = resultContent.join('\n')
+    const contentFn = handlebars.compile(finalTemplate, {
         preventIndent: true
     })
-    const renderedContent = contentFn(model)
 
+    const renderedContent = contentFn(model)
     fs.writeFileSync(targetFilePath, renderedContent, {encoding: 'utf-8'})
 }

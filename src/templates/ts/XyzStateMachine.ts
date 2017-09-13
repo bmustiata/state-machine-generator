@@ -1,24 +1,47 @@
-export enum XyzState {
-    // BEGIN_STATES: STATE_NAME,
-    DEFAULT,
-    RUNNING,
-    STOPPED,
-    // END_STATES
+function strEnum<T extends string>(o: Array<T>): {[K in T]: K} {
+    return o.reduce((res, key) => {
+        res[key] = key;
+        return res;
+    }, Object.create(null));
 }
+
+export const XyzState = strEnum([
+    //BEGIN_HANDLEBARS
+    //{{#each states}}
+    //    '{{this}}',
+    //{{/each}}
+    'DEFAULT',
+    'RUNNING',
+    'STOPPED'
+    //END_HANDLEBARS
+])
+
+const STATE_INDEX = {
+    //BEGIN_HANDLEBARS
+    //{{#each states}}
+    //    '{{this}}': {{@key}},
+    //{{/each}}
+    'DEFAULT': 0,
+    'RUNNING': 1,
+    'STOPPED': 2,
+    //END_HANDLEBARS
+}
+
+export type XyzState = keyof typeof XyzState
 
 export class XyzStateChangeEvent {
     _cancelled: boolean
 
     constructor(private _previousState: XyzState,
-                private _targetState: XyzState,
-                public data: any) {
+        private _targetState: XyzState,
+        public data: any) {
     }
 
-    get previousState() : XyzState {
+    get previousState(): XyzState {
         return this._previousState
     }
 
-    get targetState() : XyzState {
+    get targetState(): XyzState {
         return this._targetState
     }
 
@@ -27,21 +50,57 @@ export class XyzStateChangeEvent {
     }
 }
 
+export interface DataEvent {
+    data: any
+    type?: RoutingType
+    consume()
+}
+
+export type RoutingType = (string | Function)
 export type TransitionCallback = (event: XyzStateChangeEvent) => any;
-export type DataCallback = ((data: any) => XyzState) | ((data: any) => void)
+export type DataCallback = ((ev: DataEvent) => XyzState) | ((ev: DataEvent) => void)
 
 export interface CallbackRegistration {
-    detach() : void
+    detach(): void
+}
+
+class CompositeCallbackRegistration implements CallbackRegistration {
+    constructor(private listeners: Array<CallbackRegistration>) {
+    }
+
+    detach() {   
+        for (let i = 0; i < this.listeners.length; i++) {
+            try {
+                this.listeners[i].detach()
+            } catch(e) {
+                // ignore on purpose
+            }
+        }
+    }
+}
+
+function stateCall<T>(state: XyzState, callback: (state: XyzState) => CallbackRegistration) : CallbackRegistration {
+    if (state) {
+        return callback(state);
+    }
+
+    const registrations = []
+
+    for (let k in XyzState) {                
+        registrations.push(callback(XyzState[k]));
+    }
+
+    return new CompositeCallbackRegistration(registrations);
 }
 
 export class XyzStateError extends Error {
 }
 
-const transitionSet : { [transitionId: number]: boolean } = {}
-const linkMap : { 
-    [fromStateId: number] : { 
-        [transitionName: string] : number 
-    } 
+const transitionSet: { [transitionId: number]: boolean } = {}
+const linkMap: {
+    [fromStateId: number]: {
+        [transitionName: string]: number
+    }
 } = {}
 
 // BEGIN_TRANSITIONS: registerTransition("TRANSITION_NAME", XyzState.FROM_STATE, XyzState.TO_STATE);
@@ -49,6 +108,7 @@ registerTransition("run", XyzState.DEFAULT, XyzState.RUNNING);
 registerTransition(null, XyzState.DEFAULT, XyzState.STOPPED);
 registerTransition(null, XyzState.RUNNING, XyzState.DEFAULT);
 registerTransition(null, XyzState.RUNNING, XyzState.STOPPED);
+registerTransition(null, XyzState.RUNNING, XyzState.RUNNING);
 // END_TRANSITIONS
 
 export class XyzStateMachine {
@@ -67,11 +127,14 @@ export class XyzStateMachine {
 
     private currentChangeStateEvent: XyzStateChangeEvent
 
-    private transitionListeners: { [stateId: number] : EventListener<TransitionCallback> }  = {}
-    private dataListeners: { [stateId: number] : EventListener<DataCallback> } = {}
+    private transitionListeners: { [stateId: number]: EventListener<TransitionCallback> } = {}
+    private dataListeners: { [stateId: number]: EventListener<DataCallback> } = {}
 
-    constructor(initialState? : XyzState) {
-        this.initialState = initialState || 0
+    constructor(initialState?: XyzState) {
+        //BEGIN_HANDLEBARS
+        //        this.initialState = initialState || XyzState.{{states.[0]}}
+        this.initialState = initialState || XyzState.DEFAULT
+        //END_HANDLEBARS
 
         // BEGIN_STATES: this.transitionListeners[XyzState.STATE_NAME] = new EventListener<TransitionCallback>()
         // FIXME: make these a `for` loop?
@@ -86,13 +149,13 @@ export class XyzStateMachine {
         // END_STATES
     }
 
-    get state() { 
+    get state() {
         this.ensureStateMachineInitialized()
         return this.currentState
     }
 
     // BEGIN_TRANSITION_SET: TRANSITION_NAME(data?: any) : XyzState { return this.transition("TRANSITION_NAME", data); }
-    run(data?: any) : XyzState { return this.transition("run", data); }
+    run(data?: any): XyzState { return this.transition("run", data); }
     // END_TRANSITION_SET
 
     private ensureStateMachineInitialized() {
@@ -101,25 +164,31 @@ export class XyzStateMachine {
         }
     }
 
-    changeState(targetState: XyzState, data?: any) : XyzState {
+    changeState(targetState: XyzState, data?: any): XyzState {
         this.ensureStateMachineInitialized()
         return this.changeStateImpl(targetState, data)
     }
 
-    changeStateImpl(targetState: XyzState, data?: any) : XyzState {
+    changeStateImpl(targetState: XyzState, data?: any): XyzState {
         if (typeof targetState == 'undefined') {
             throw new Error('No target state specified. Can not change the state.')
+        }
+
+        // this also ignores the fact that maybe there is no transition
+        // into the same state.
+        if (targetState == this.currentState) {
+            return targetState
         }
 
         const stateChangeEvent = new XyzStateChangeEvent(this.currentState, targetState, data)
 
         if (this.currentChangeStateEvent) {
             throw new XyzStateError(
-                        `The XyzStateMachine is already in a changeState (${this.currentChangeStateEvent.previousState} -> ${this.currentChangeStateEvent.targetState}). ` +
-                        `Transitioning the state machine (${this.currentState} -> ${targetState}) in \`before\` events is not supported.`);
+                `The XyzStateMachine is already in a changeState (${this.currentChangeStateEvent.previousState} -> ${this.currentChangeStateEvent.targetState}). ` +
+                `Transitioning the state machine (${this.currentState} -> ${targetState}) in \`before\` events is not supported.`);
         }
 
-        if (this.currentState != null && !transitionSet[this.currentState << 16 | targetState]) {
+        if (this.currentState != null && !transitionSet[STATE_INDEX[this.currentState] << 16 | STATE_INDEX[targetState]]) {
             console.error(`No transition exists between ${this.currentState} -> ${targetState}.`);
             return this.currentState;
         }
@@ -146,7 +215,7 @@ export class XyzStateMachine {
         return this.currentState
     }
 
-    transition(linkName: string, data? : any) : XyzState {
+    transition(linkName: string, data?: any): XyzState {
         this.ensureStateMachineInitialized()
 
         const sourceState = linkMap[this.currentState]
@@ -165,23 +234,52 @@ export class XyzStateMachine {
     }
 
     beforeEnter(state: XyzState, callback: TransitionCallback) {
-        return this.transitionListeners[state].addListener(EventType.BEFORE_ENTER, callback)
+        return stateCall(state, (state) => {
+            return this.transitionListeners[state].addListener(EventType.BEFORE_ENTER, callback);
+        });
     }
 
     afterEnter(state: XyzState, callback: TransitionCallback) {
-        return this.transitionListeners[state].addListener(EventType.AFTER_ENTER, callback)
+        return stateCall(state, (state) => {
+            return this.transitionListeners[state].addListener(EventType.AFTER_ENTER, callback);
+        });
     }
 
     beforeLeave(state: XyzState, callback: TransitionCallback) {
-        return this.transitionListeners[state].addListener(EventType.BEFORE_LEAVE, callback)
+        return stateCall(state, (state) => {
+            return this.transitionListeners[state].addListener(EventType.BEFORE_LEAVE, callback);
+        });
     }
 
     afterLeave(state: XyzState, callback: TransitionCallback) {
-        return this.transitionListeners[state].addListener(EventType.AFTER_LEAVE, callback)
+        return stateCall(state, (state) => {
+            return this.transitionListeners[state].addListener(EventType.AFTER_LEAVE, callback);
+        });
     }
 
-    onData(state: XyzState, callback: DataCallback) {
-        return this.dataListeners[state].addListener('data', callback)
+    onData(state: XyzState, type: RoutingType, callback: DataCallback);
+    onData(state: XyzState, callback: DataCallback);
+    onData(state: XyzState) {
+        let callback;
+        let type;
+
+        if (arguments.length == 2) {
+            callback = arguments[1]
+            return stateCall(state, (state) => {
+                return this.dataListeners[state].addListener('data', callback)
+            })
+        }
+
+        type = arguments[1]
+        callback = arguments[2]
+
+        return stateCall(state, (state) => {
+            return this.dataListeners[state].addListener('data', function(ev) {
+                if (ev.type == type) {
+                    return callback.apply(this, arguments);
+                }
+            });
+        });
     }
 
     /**
@@ -192,7 +290,7 @@ export class XyzStateMachine {
      * @param newState The state to transition into.
      * @param data The data to send.
      */
-    forwardData(newState: XyzState, data: any) : XyzState {
+    forwardData(newState: XyzState, data: any): XyzState {
         this.sendData(newState, data)
         return null
     }
@@ -202,27 +300,58 @@ export class XyzStateMachine {
      * registered with `onData`.
      * @param data The data to send.
      */
-    sendData(data: any) : XyzState;
+    sendData(data: any): XyzState;
     /**
      * Transitions first the state machine into the new state, then it
-     * will send the data into the state machine.
+     * will send the data with an attached type into the state machine.
      * @param newState 
      * @param data 
+     * @param type
      */
-    sendData(newState: XyzState, data: any) : XyzState;
-    sendData(newState: any, data?: any) {
+    sendData(newState: XyzState, type: RoutingType, data: any): XyzState;
+    /**
+     * Sends the data into the state machine, with an attached type.
+     * @param type
+     * @param data 
+     */
+    sendData(type: RoutingType, data: any): XyzState;
+    /**
+     * Transitions first the state machine into the newState, then sends the data
+     * to it.
+     * @param newState
+     * @param data 
+     */
+    sendData(newState: XyzState, data: any): XyzState;
+    /**
+     * Ensure the state machine is getting
+     * @param newState 
+     * @param type
+     * @param data 
+     */
+    sendData(newState: any, type?: any, data?: any) {
         this.ensureStateMachineInitialized()
 
-        if (typeof data == 'undefined') {
+        if (typeof type == 'undefined') {
             data = newState
             newState = undefined
+        }
+
+        if (typeof data == 'undefined') {
+            data = type
+            
+            if (XyzState[newState]) { // our enums
+                type = undefined
+            } else {
+                type = newState
+                newState = undefined
+            }
         }
 
         if (typeof newState != 'undefined') {
             this.changeState(newState, data)
         }
 
-        const targetState = this.dataListeners[this.currentState].fire('data', data)
+        const targetState = this.dataListeners[this.currentState].fire('data', new ListenerEvent(data, type))
 
         if (targetState != null) {
             return this.changeState(targetState, data)
@@ -232,9 +361,9 @@ export class XyzStateMachine {
     }
 }
 
-function registerTransition(name: string, fromState: XyzState, toState: XyzState) : void {
-    transitionSet[fromState << 16 | toState] = true
-    
+function registerTransition(name: string, fromState: XyzState, toState: XyzState): void {
+    transitionSet[STATE_INDEX[fromState] << 16 | STATE_INDEX[toState]] = true
+
     if (!name) {
         return
     }
@@ -248,53 +377,84 @@ function registerTransition(name: string, fromState: XyzState, toState: XyzState
 }
 
 const EventType = {
-    BEFORE_ENTER : 'before-enter',
-    BEFORE_LEAVE : 'before-leave',
-    AFTER_LEAVE : 'after-leave',
-    AFTER_ENTER : 'after-enter',
+    BEFORE_ENTER: 'before-enter',
+    BEFORE_LEAVE: 'before-leave',
+    AFTER_LEAVE: 'after-leave',
+    AFTER_ENTER: 'after-enter',
 }
 
 class EventListener<T extends Function> {
-    registered : { [eventName: string] : Set<T> } = {}
+    registered: { [eventName: string]: { [callbackId: number]: Function } } = {}
 
-    addListener(eventName: string, callback: T) : CallbackRegistration {
+    addListener(eventName: string, callback: T): CallbackRegistration {
         let eventListeners = this.registered[eventName]
-        
+
         if (!eventListeners) {
-            eventListeners = this.registered[eventName] = new Set();
+            eventListeners = this.registered[eventName] = {};
         }
 
-        eventListeners.add(callback)
+        // GUID generation: https://stackoverflow.com/a/2117523/163415
+        const callbackId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+            .replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+
+        eventListeners[callbackId] = callback
 
         return {
             detach() {
-                eventListeners.delete(callback)
+                delete eventListeners[callbackId]
             }
         }
     }
 
-    fire(eventName: string, ev: any) : any {
+    fire(eventName: string, ev: any): any {
         if (!this.registered[eventName]) {
             return
         }
 
-        let result
+        let result        
 
-        this.registered[eventName].forEach(it => {
+        const listeners = this.registered[eventName]
+
+        for (var k in listeners) {
             try {
-                const potentialResult = it.call(null, ev)
+                const callback = listeners[k];
+
+                const potentialResult = callback.call(null, ev)
                 if (typeof potentialResult !== 'undefined' && typeof result != 'undefined') {
                     throw new XyzStateError(`Data is already returned.`)
                 }
 
                 result = potentialResult
+
+                if (ev && ev.consumed) {
+                    break;
+                }
             } catch (e) {
                 if (e instanceof XyzStateError) {
                     throw e
                 }
             }
-        })
+
+        }
 
         return result
+    }
+}
+
+class ListenerEvent {
+    private _consumed : boolean
+
+    constructor(public data: any, public type?: any) {
+    }
+
+    consume() {
+        this._consumed = true
+    }
+
+    get consumed() {
+        return this._consumed
     }
 }

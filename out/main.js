@@ -218,10 +218,10 @@ module.exports =
 	var TRANSITION_SET_END_RE = /^\s*\/\/ END_TRANSITION_SET\s*$/m;
 	var STATES_RE = /^\s*\/\/ BEGIN_STATES:\s*(.*)\s*$/m;
 	var STATES_END_RE = /^\s*\/\/ END_STATES\s*$/m;
-	var HANDLEBARS_RE = /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m;
+	var HANDLEBARS_RE = /^(\s*)\/\/(\s*)BEGIN_HANDLEBARS\s*$/m;
 	var HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m;
 	var HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m;
-	var HANDLEBARS_SHARP_RE = /^\s*#\s*BEGIN_HANDLEBARS\s*$/m;
+	var HANDLEBARS_SHARP_RE = /^(\s*)#(\s*)BEGIN_HANDLEBARS\s*$/m;
 	var HANDLEBARS_SHARP_CONTENT = /^\s*#(.*)$/m;
 	var HANDLEBARS_SHARP_END_RE = /^\s*#\s*END_HANDLEBARS\s*$/m;
 	handlebars.registerHelper('capitalize', function (s) {
@@ -257,6 +257,12 @@ module.exports =
 	    line = line.replace(/com\.ciplogic\.statemachine/g, model.package);
 	    return line;
 	}
+	function dedent(line, indent, spacing) {
+	    if (!line) {
+	        return "";
+	    }
+	    return indent + line.substr(spacing);
+	}
 	/**
 	 * Write the template file.
 	 * @param templateFilePath The source template.
@@ -268,6 +274,8 @@ module.exports =
 	    filePath = filePath.replace(/Xyz/g, model.name);
 	    var targetFilePath = path.join(targetFolder, filePath);
 	    var readStateMachine = new TemplateStateMachine_1.TemplateStateMachine();
+	    var templateSpacing = 0;
+	    var templateIndent = void 0;
 	    readStateMachine.onData(TemplateStateMachine_1.TemplateState.NORMAL_TEXT, function (line) {
 	        var transitionMatch = TRANSITIONS_RE.exec(line);
 	        if (transitionMatch) {
@@ -287,10 +295,16 @@ module.exports =
 	            readStateMachine.changeState(TemplateStateMachine_1.TemplateState.STATES, _pattern2);
 	            return;
 	        }
-	        if (HANDLEBARS_RE.test(line)) {
+	        var m = HANDLEBARS_RE.exec(line);
+	        if (m) {
+	            templateIndent = m[1] ? m[1] : "";
+	            templateSpacing = m[2] ? m[2].length : 0;
 	            return TemplateStateMachine_1.TemplateState.HANDLEBARS;
 	        }
-	        if (HANDLEBARS_SHARP_RE.test(line)) {
+	        m = HANDLEBARS_SHARP_RE.exec(line);
+	        if (m) {
+	            templateIndent = m[1] ? m[1] : "";
+	            templateSpacing = m[2] ? m[2].length : 0;
 	            return TemplateStateMachine_1.TemplateState.HANDLEBARS_SHARP;
 	        }
 	        resultContent.push(replacePackageAndName(line, model));
@@ -304,7 +318,8 @@ module.exports =
 	            console.log('Ignored non commented HBS line: ', line);
 	            return;
 	        }
-	        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model));
+	        var parsedText = replacePackageAndName(handlebarsContentMatcher[1], model);
+	        resultContent.push(dedent(parsedText, templateIndent, templateSpacing));
 	    });
 	    readStateMachine.onData(TemplateStateMachine_1.TemplateState.HANDLEBARS_SHARP, function (line) {
 	        if (HANDLEBARS_SHARP_END_RE.test(line)) {
@@ -315,7 +330,8 @@ module.exports =
 	            console.log('Ignored non commented HBS line: ', line);
 	            return;
 	        }
-	        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model));
+	        var parsedText = replacePackageAndName(handlebarsContentMatcher[1], model);
+	        resultContent.push(dedent(parsedText, templateIndent, templateSpacing));
 	    });
 	    readStateMachine.onData(TemplateStateMachine_1.TemplateState.STATES, function (line) {
 	        if (STATES_END_RE.test(line)) {

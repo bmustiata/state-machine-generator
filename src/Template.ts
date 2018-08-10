@@ -16,11 +16,11 @@ const TRANSITION_SET_END_RE = /^\s*\/\/ END_TRANSITION_SET\s*$/m
 const STATES_RE = /^\s*\/\/ BEGIN_STATES:\s*(.*)\s*$/m
 const STATES_END_RE = /^\s*\/\/ END_STATES\s*$/m
 
-const HANDLEBARS_RE =  /^\s*\/\/\s*BEGIN_HANDLEBARS\s*$/m
+const HANDLEBARS_RE =  /^(\s*)\/\/(\s*)BEGIN_HANDLEBARS\s*$/m
 const HANDLEBARS_CONTENT = /^\s*\/\/(.*)$/m
 const HANDLEBARS_END_RE = /^\s*\/\/\s*END_HANDLEBARS\s*$/m
 
-const HANDLEBARS_SHARP_RE =  /^\s*#\s*BEGIN_HANDLEBARS\s*$/m
+const HANDLEBARS_SHARP_RE =  /^(\s*)#(\s*)BEGIN_HANDLEBARS\s*$/m
 const HANDLEBARS_SHARP_CONTENT = /^\s*#(.*)$/m
 const HANDLEBARS_SHARP_END_RE = /^\s*#\s*END_HANDLEBARS\s*$/m
 
@@ -63,6 +63,16 @@ function replacePackageAndName(line: string, model: StateModel) : string {
     return line
 }
 
+function dedent(line: string, 
+                indent: string,
+                spacing: number) : string {
+    if (!line) {
+        return ""
+    }
+
+    return indent + line.substr(spacing)
+}
+
 /**
  * Write the template file.
  * @param templateFilePath The source template.
@@ -77,6 +87,8 @@ export function applyTemplate(templateFilePath: string,
     filePath = filePath.replace(/Xyz/g, model.name)    
     const targetFilePath = path.join(targetFolder, filePath);
     const readStateMachine = new TemplateStateMachine()
+    let templateSpacing : number = 0
+    let templateIndent : string
 
     readStateMachine.onData(TemplateState.NORMAL_TEXT, (line) => {
         const transitionMatch = TRANSITIONS_RE.exec(line)
@@ -103,11 +115,19 @@ export function applyTemplate(templateFilePath: string,
             return
         }
 
-        if (HANDLEBARS_RE.test(line)) {
+        let m = HANDLEBARS_RE.exec(line)
+
+        if (m) {
+            templateIndent = m[1] ? m[1] : ""
+            templateSpacing = m[2] ? m[2].length : 0
             return TemplateState.HANDLEBARS
         }
 
-        if (HANDLEBARS_SHARP_RE.test(line)) {
+        m = HANDLEBARS_SHARP_RE.exec(line)
+
+        if (m) {
+            templateIndent = m[1] ? m[1] : ""
+            templateSpacing = m[2] ? m[2].length : 0
             return TemplateState.HANDLEBARS_SHARP
         }
 
@@ -126,7 +146,8 @@ export function applyTemplate(templateFilePath: string,
             return
         }
 
-        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model))
+        const parsedText = replacePackageAndName(handlebarsContentMatcher[1], model)
+        resultContent.push(dedent(parsedText, templateIndent, templateSpacing))
     })
 
     readStateMachine.onData(TemplateState.HANDLEBARS_SHARP, (line) => {
@@ -141,7 +162,8 @@ export function applyTemplate(templateFilePath: string,
             return
         }
 
-        resultContent.push(replacePackageAndName(handlebarsContentMatcher[1], model))
+        const parsedText = replacePackageAndName(handlebarsContentMatcher[1], model)
+        resultContent.push(dedent(parsedText, templateIndent, templateSpacing))
     })
 
     readStateMachine.onData(TemplateState.STATES, (line) => {

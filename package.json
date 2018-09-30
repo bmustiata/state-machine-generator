@@ -2,8 +2,8 @@
   "name": "state-machine-generator",
   "version": "2.3.3",
   "description": "state-machine-generator.",
-  "bin" : {
-    "state-machine-generator" : "out/main.js"
+  "bin": {
+    "state-machine-generator": "out/main.js"
   },
   "scripts": {
     "test": "mocha-webpack --webpack-config webpack.config.js \"test/**/*.test.ts\""
@@ -38,4 +38,3 @@
     "source-map-support": "0.4.8"
   }
 }
-
